@@ -1,0 +1,6 @@
+# No publicar la copia de seguridad ni el README en la web
+exclude:
+  - original
+  - README.md
+include:
+  - llms.txt
