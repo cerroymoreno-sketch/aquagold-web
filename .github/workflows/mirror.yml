@@ -1,0 +1,32 @@
+name: copia-web-actual
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/mirror.yml']
+permissions:
+  contents: write
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descargar web actual de aquagold.es
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36"
+          mkdir -p original && cd original
+          for p in "" osmosis-inversa-valencia-castellon descalcificadores-valencia-castellon descalcificador-sin-sal-turbical-valencia-castellon fuentes-de-agua-para-empresas-valencia-castellon mantenimiento-tratamiento-agua-valencia-castellon contacto faq guia-elegir-osmosis-descalcificador-valencia-castellon dureza-agua-comunidad-valenciana aviso-legal-y-politica-de-privacidad; do
+            n=${p:-index}; curl -fsSL -A "$UA" "https://aquagold.es/$p" -o "$n.html" || echo "FALLO $p"
+          done
+          for f in robots.txt sitemap.xml favicon.ico logo-aquagold.png hero-aquagold.webp descalcificador-aquagold-10l.webp osmosis-thin-acero-inoxidable.webp descalcificador-sin-sal-turbical.webp fuente-aquagold-empresas.webp assets/index-DKSq9HmK.css; do
+            mkdir -p "$(dirname "$f")"; curl -fsSL -A "$UA" "https://aquagold.es/$f" -o "$f" || echo "FALLO $f"
+          done
+          grep -ohE '(href|src)="/[^"]+\.(png|ico|svg|webp|jpg|jpeg|css|woff2?)"' *.html | sed -E 's/^(href|src)="\///; s/"$//' | sort -u > extra.txt || true
+          while read f; do mkdir -p "$(dirname "$f")"; [ -f "$f" ] || curl -fsSL -A "$UA" "https://aquagold.es/$f" -o "$f" || echo "FALLO $f"; done < extra.txt
+          ls -la . assets
+      - name: Guardar copia en el repositorio
+        run: |
+          git config user.name "AQUAGOLD web"
+          git config user.email "info@aquagold.es"
+          git add original
+          git commit -m "Copia de seguridad de la web actual de aquagold.es" || echo "sin cambios"
+          git push
